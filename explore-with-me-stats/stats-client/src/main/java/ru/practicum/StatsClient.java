@@ -10,10 +10,13 @@ import org.springframework.web.util.DefaultUriBuilderFactory;
 
 import javax.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Map;
 
 @Service
 public class StatsClient extends BaseClient {
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     @Autowired
     public StatsClient(@Value("${explore-with-me-stats-service.url}") String serverUrl, RestTemplateBuilder builder) {
         super(
@@ -36,16 +39,26 @@ public class StatsClient extends BaseClient {
 
     public ResponseEntity<Object> getStats(LocalDateTime start,
                                            LocalDateTime end,
-                                           String[] uris,
+                                           List<String> uris,
                                            Boolean unique) {
+        String concatenatedUris = concatenateUris(uris);
 
         Map<String, Object> parameters = Map.of(
-                "start", start,
-                "end", end,
-                "uris", String.join(",", uris),
+                "start", start.format(FORMATTER),
+                "end", end.format(FORMATTER),
+                "uris", concatenatedUris,
                 "unique", unique
         );
 
-        return get("/stats", parameters);
+        return get("/stats?start={start}&end={end}&uris={uris}&unique={unique}", parameters);
+    }
+
+    private String concatenateUris(List<String> uris) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < uris.size() - 1; i++) {
+            sb.append(uris.get(i)).append("&uris=");
+        }
+        sb.append(uris.get(uris.size() - 1));
+        return sb.toString();
     }
 }

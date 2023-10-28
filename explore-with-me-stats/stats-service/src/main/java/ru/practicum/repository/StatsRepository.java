@@ -1,42 +1,40 @@
 package ru.practicum.repository;
 
 import org.springframework.data.jpa.repository.Query;
-import ru.practicum.StatDtoWithHits;
+import ru.practicum.StatDtoWithHitsProjection;
 import ru.practicum.model.Stat;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import org.springframework.data.repository.query.Param;
 
 public interface StatsRepository extends JpaRepository<Stat, Long> {
+    @Query(value =
+            "SELECT st.app AS app, st.uri AS uri, count(DISTINCT st.ip) AS hits " +
+                    "FROM stats st " +
+                    "WHERE (:uris IS NULL OR st.uri IN :uris) " +
+                    "AND (CAST(st.timestamp AS DATE) BETWEEN :start AND :end) " +
+                    "GROUP BY st.app, st.uri " +
+                    "ORDER BY hits DESC",
+            nativeQuery = true)
+    List<StatDtoWithHitsProjection> getStatsForTimeIntervalUnique(
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end,
+            @Param("uris") List<String> uris
+    );
 
-    @Query("SELECT new ru.practicum.StatDtoWithHits(st.app, st.uri.name, count(st.ip)) " +
-            "FROM Stat AS st " +
-            "WHERE st.timestamp BETWEEN :start AND :end " +
-            "AND st.uri.name IN :uris " +
-            "GROUP BY st.uri.name, st.app " +
-            "ORDER BY count(st.ip) DESC ")
-    List<StatDtoWithHits> getStatsForTimeIntervalAndUris(LocalDateTime start, LocalDateTime end, String[] uris);
-
-    @Query("SELECT new ru.practicum.StatDtoWithHits(st.app, st.uri.name, count(distinct st.ip)) " +
-            "FROM Stat AS st " +
-            "WHERE st.timestamp BETWEEN :start AND :end " +
-            "AND st.uri.name IN :uris " +
-            "GROUP BY st.uri.name, st.app " +
-            "ORDER BY count(distinct st.ip) DESC ")
-    List<StatDtoWithHits> getStatsForTimeIntervalAndUrisUnique(LocalDateTime start, LocalDateTime end, String[] uris);
-
-    @Query("SELECT new ru.practicum.StatDtoWithHits(st.app, st.uri.name, count(st.ip)) " +
-            "FROM Stat AS st " +
-            "WHERE st.timestamp BETWEEN :start AND :end " +
-            "GROUP BY st.uri.name, st.app " +
-            "ORDER BY count(st.ip) DESC ")
-    List<StatDtoWithHits> getStatsForTimeInterval(LocalDateTime start, LocalDateTime end);
-
-    @Query("SELECT new ru.practicum.StatDtoWithHits(st.app, st.uri.name, count(distinct st.ip)) " +
-            "FROM Stat AS st " +
-            "WHERE st.timestamp BETWEEN :start AND :end " +
-            "GROUP BY st.uri.name, st.app " +
-            "ORDER BY count(distinct st.ip) DESC ")
-    List<StatDtoWithHits> getStatsForTimeIntervalUnique(LocalDateTime start, LocalDateTime end);
+    @Query(value =
+            "SELECT st.app AS app, st.uri AS uri, count(st.ip) AS hits " +
+                    "FROM stats st " +
+                    "WHERE (:uris IS NULL OR st.uri IN :uris) " +
+                    "AND (CAST(st.timestamp AS DATE) BETWEEN :start AND :end) " +
+                    "GROUP BY st.app, st.uri " +
+                    "ORDER BY hits DESC",
+            nativeQuery = true)
+    List<StatDtoWithHitsProjection> getStatsForTimeInterval(
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end,
+            @Param("uris") List<String> uris
+    );
 }
