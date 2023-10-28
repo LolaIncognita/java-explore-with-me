@@ -10,8 +10,6 @@ public interface StatsService {
 
     StatDto saveStats(StatDto statDto);
 
-    List<StatDtoWithHits> getStats(LocalDateTime start, LocalDateTime end, String[] uris, Boolean unique);
-
-    StatDto getStatsById(long id);
+    List<StatDtoWithHits> getStats(LocalDateTime start, LocalDateTime end, List<String> uris, Boolean unique);
 
 }

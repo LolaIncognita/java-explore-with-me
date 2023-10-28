@@ -3,16 +3,17 @@ package ru.practicum.service;
 import lombok.RequiredArgsConstructor;
 import ru.practicum.StatDto;
 import ru.practicum.StatDtoWithHits;
+import ru.practicum.controller.exception.LocalDateTimeException;
 import ru.practicum.model.Stat;
 import ru.practicum.model.StatMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.practicum.model.Uri;
 import ru.practicum.repository.StatsRepository;
-import ru.practicum.repository.UriRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -20,46 +21,43 @@ import java.util.List;
 public class StatsServiceImpl implements StatsService {
 
     private final StatsRepository statsRepository;
-    private final UriRepository uriRepository;
 
     @Override
     @Transactional
     public StatDto saveStats(StatDto statDto) {
         Stat stat = StatMapper.fromStatDto(statDto);
-        Uri uri;
-        if (uriRepository.findByName(stat.getUri().getName()) == null) {
-            uri = uriRepository.save(stat.getUri());
-        } else {
-            uri = uriRepository.findByName(stat.getUri().getName());
-        }
-        stat.setUri(uri);
         return StatMapper.toStatDto(statsRepository.save(stat));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<StatDtoWithHits> getStats(LocalDateTime start, LocalDateTime end, String[] uris, Boolean unique) {
+    public List<StatDtoWithHits> getStats(LocalDateTime start, LocalDateTime end, List<String> uris, Boolean unique) {
+        checkLocalDateTimeOrThrow(start, end);
+        List<StatDtoWithHits> ans = new ArrayList<>();
 
-        if (!unique) {
-            if (uris == null || uris.length == 0) {
-                return statsRepository.getStatsForTimeInterval(start, end);
+        for (String u : uris) {
+            if (!unique) {
+                List<StatDtoWithHits> results = statsRepository.getStatsForTimeInterval(start, end, List.of(u))
+                        .stream()
+                        .map(s -> new StatDtoWithHits(s.getApp(), s.getUri(), s.getHits()))
+                        .collect(Collectors.toList());
+                ans.addAll(results);
             } else {
-                return statsRepository.getStatsForTimeIntervalAndUris(start, end, uris);
-            }
-        } else {
-            if (uris == null || uris.length == 0) {
-                return statsRepository.getStatsForTimeIntervalUnique(start, end);
-            } else {
-                return statsRepository.getStatsForTimeIntervalAndUrisUnique(start, end, uris);
+                List<StatDtoWithHits> results = statsRepository.getStatsForTimeIntervalUnique(start, end, List.of(u))
+                        .stream()
+                        .map(s -> new StatDtoWithHits(s.getApp(), s.getUri(), s.getHits()))
+                        .collect(Collectors.toList());
+                ans.addAll(results);
             }
         }
 
+        ans.sort(Comparator.comparing(StatDtoWithHits::getHits).reversed());
+        return ans;
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public StatDto getStatsById(long id) {
-        return StatMapper.toStatDto(statsRepository.findById(id).orElseThrow());
+    private void checkLocalDateTimeOrThrow(LocalDateTime start, LocalDateTime end) {
+        if (start.isAfter(end) || end == null) {
+            throw new LocalDateTimeException("Start must be after end");
+        }
     }
-
 }

@@ -3,21 +3,22 @@ package ru.practicum.model;
 import lombok.*;
 
 import javax.persistence.*;
-import java.time.LocalDateTime;
+import javax.validation.constraints.Email;
+import javax.validation.constraints.NotNull;
 
 @Entity
-@Table(name = "stats")
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Stat {
+@Table(name = "users")
+public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String app;
-    private String uri;
-    private String ip;
-    private LocalDateTime timestamp;
+    @NotNull
+    @Email
+    private String email;
+    private String name;
 }

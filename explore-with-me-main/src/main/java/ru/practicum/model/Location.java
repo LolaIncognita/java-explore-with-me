@@ -3,21 +3,19 @@ package ru.practicum.model;
 import lombok.*;
 
 import javax.persistence.*;
-import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "stats")
 @Getter
 @Setter
 @Builder
+@ToString
 @NoArgsConstructor
 @AllArgsConstructor
-public class Stat {
+@Table(name = "locations")
+public class Location {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String app;
-    private String uri;
-    private String ip;
-    private LocalDateTime timestamp;
+    private Double lat;
+    private Double lon;
 }
